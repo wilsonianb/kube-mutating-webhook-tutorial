@@ -1,15 +1,15 @@
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: sidecar-injector-webhook-cfg
+  name: name-mutator-webhook-cfg
   labels:
-    app: sidecar-injector
+    app: name-mutator
 webhooks:
-- name: sidecar-injector.morven.me
+- name: name-mutator.codius.org
   clientConfig:
     service:
-      name: sidecar-injector-webhook-svc
-      namespace: sidecar-injector
+      name: name-mutator-webhook-svc
+      namespace: name-mutator
       path: "/mutate"
     caBundle: ${CA_BUNDLE}
   rules:
@@ -19,4 +19,4 @@ webhooks:
     resources: ["pods"]
   namespaceSelector:
     matchLabels:
-      sidecar-injection: enabled
+      name-mutation: enabled

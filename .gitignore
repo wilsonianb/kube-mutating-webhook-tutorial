@@ -13,3 +13,5 @@
 vendor/*
 
 build/_output
+
+deployment/mutatingwebhook-ca-bundle.yaml

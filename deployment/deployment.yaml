@@ -1,26 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sidecar-injector-webhook-deployment
-  namespace: sidecar-injector
+  name: name-mutator-webhook-deployment
+  namespace: name-mutator
   labels:
-    app: sidecar-injector
+    app: name-mutator
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: sidecar-injector
+      app: name-mutator
   template:
     metadata:
       labels:
-        app: sidecar-injector
+        app: name-mutator
     spec:
       containers:
-        - name: sidecar-injector
-          image: morvencao/sidecar-injector:latest
-          imagePullPolicy: IfNotPresent
+        - name: name-mutator
+          image: wilsonianbcoil/name-mutator:latest
+          imagePullPolicy: Always
           args:
-          - -sidecarCfgFile=/etc/webhook/config/sidecarconfig.yaml
           - -tlsCertFile=/etc/webhook/certs/cert.pem
           - -tlsKeyFile=/etc/webhook/certs/key.pem
           - -alsologtostderr
@@ -30,12 +29,7 @@ spec:
           - name: webhook-certs
             mountPath: /etc/webhook/certs
             readOnly: true
-          - name: webhook-config
-            mountPath: /etc/webhook/config
       volumes:
       - name: webhook-certs
         secret:
-          secretName: sidecar-injector-webhook-certs
-      - name: webhook-config
-        configMap:
-          name: sidecar-injector-webhook-configmap
+          secretName: name-mutator-webhook-certs

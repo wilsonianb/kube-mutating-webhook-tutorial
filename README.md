@@ -1,8 +1,8 @@
-# Kubernetes Mutating Webhook for Sidecar Injection
+# Kubernetes Mutating Webhook for Resource Name Mutation
 
 [![GoDoc](https://godoc.org/github.com/morvencao/kube-mutating-webhook-tutorial?status.svg)](https://godoc.org/github.com/morvencao/kube-mutating-webhook-tutorial)
 
-This tutoral shows how to build and deploy a [MutatingAdmissionWebhook](https://kubernetes.io/docs/admin/admission-controllers/#mutatingadmissionwebhook-beta-in-19) that injects a nginx sidecar container into pod prior to persistence of the object.
+This tutoral shows how to build and deploy a [MutatingAdmissionWebhook](https://kubernetes.io/docs/admin/admission-controllers/#mutatingadmissionwebhook-beta-in-19) that changes the name of a resource to the sha256 hash of its spec.
 
 ## Prerequisites
 
@@ -47,87 +47,82 @@ admissionregistration.k8s.io/v1beta1
 
 ## Deploy
 
-1. Create namespace `sidecar-injector` in which the sidecar injector webhook is deployed:
+1. Create namespace `name-mutator` in which the name mutator webhook is deployed:
 
 ```
-# kubectl create ns sidecar-injector
+# kubectl create ns name-mutator
 ```
 
-2. Create a signed cert/key pair and store it in a Kubernetes `secret` that will be consumed by sidecar injector deployment:
+2. Create a signed cert/key pair and store it in a Kubernetes `secret` that will be consumed by name mutator deployment:
 
 ```
-# ./deploy/webhook-create-signed-cert.sh \
-    --service sidecar-injector-webhook-svc \
-    --secret sidecar-injector-webhook-certs \
-    --namespace sidecar-injector
+# ./deployment/webhook-create-signed-cert.sh \
+    --service name-mutator-webhook-svc \
+    --secret name-mutator-webhook-certs \
+    --namespace name-mutator
 ```
 
 3. Patch the `MutatingWebhookConfiguration` by set `caBundle` with correct value from Kubernetes cluster:
 
 ```
-# cat deploy/mutatingwebhook.yaml | \
-    deploy/webhook-patch-ca-bundle.sh > \
-    deploy/mutatingwebhook-ca-bundle.yaml
+# cat deployment/mutatingwebhook.yaml | \
+    deployment/webhook-patch-ca-bundle.sh > \
+    deployment/mutatingwebhook-ca-bundle.yaml
 ```
 
 4. Deploy resources:
 
 ```
-# kubectl create -f deploy/nginxconfigmap.yaml
-# kubectl create -f deploy/configmap.yaml
-# kubectl create -f deploy/deployment.yaml
-# kubectl create -f deploy/service.yaml
-# kubectl create -f deploy/mutatingwebhook-ca-bundle.yaml
+# kubectl create -f deployment/deployment.yaml
+# kubectl create -f deployment/service.yaml
+# kubectl create -f deployment/mutatingwebhook-ca-bundle.yaml
 ```
 
 ## Verify
 
-1. The sidecar inject webhook should be in running state:
+1. The name mutator webhook should be in running state:
 
 ```
-# kubectl -n sidecar-injector get pod
+# kubectl -n name-mutator get pod
 NAME                                                   READY   STATUS    RESTARTS   AGE
-sidecar-injector-webhook-deployment-7c8bc5f4c9-28c84   1/1     Running   0          30s
-# kubectl -n sidecar-injector get deploy
+name-mutator-webhook-deployment-7c8bc5f4c9-28c84       1/1     Running   0          30s
+# kubectl -n name-mutator get deploy
 NAME                                  READY   UP-TO-DATE   AVAILABLE   AGE
-sidecar-injector-webhook-deployment   1/1     1            1           67s
+name-mutator-webhook-deployment       1/1     1            1           67s
 ```
 
-2. Create new namespace `injection` and label it with `sidecar-injector=enabled`:
+2. Create new namespace `mutator` and label it with `name-mutation=enabled`:
 
 ```
-# kubectl create ns injection
-# kubectl label namespace injection sidecar-injection=enabled
-# kubectl get namespace -L sidecar-injection
-NAME                 STATUS   AGE   SIDECAR-INJECTION
+# kubectl create ns mutator
+# kubectl label namespace mutator name-mutation=enabled
+# kubectl get namespace -L name-mutation
+NAME                 STATUS   AGE   NAME-MUTATION
 default              Active   26m
-injection            Active   13s   enabled
+mutator              Active   13s   enabled
 kube-public          Active   26m
 kube-system          Active   26m
-sidecar-injector     Active   17m
+name-mutator         Active   17m
 ```
 
 3. Deploy an app in Kubernetes cluster, take `alpine` app as an example
 
 ```
-# kubectl run alpine --image=alpine --restart=Never -n injection --overrides='{"apiVersion":"v1","metadata":{"annotations":{"sidecar-injector-webhook.morven.me/inject":"yes"}}}' --command -- sleep infinity
+# kubectl run alpine --image=alpine --restart=Never -n mutator --command -- sleep infinity
 ```
 
-4. Verify sidecar container is injected:
+4. Verify the name is mutated:
 
 ```
-# kubectl get pod
-NAME                     READY     STATUS        RESTARTS   AGE
-alpine                   2/2       Running       0          1m
-# kubectl -n injection get pod alpine -o jsonpath="{.spec.containers[*].name}"
-alpine sidecar-nginx
+# kubectl get pod -n mutator
+NAME                                                               READY   STATUS    RESTARTS   AGE
+2a765e5498d15fb4b6aeb0e057f1645616bbc2f62e38e612a992243a10cf758f   1/1     Running   0          1m
 ```
 
 ## Troubleshooting
 
-Sometimes you may find that pod is injected with sidecar container as expected, check the following items:
+Check the following items:
 
-1. The sidecar-injector webhook is in running state and no error logs.
+1. The name-mutator webhook is in running state and no error logs.
 2. The namespace in which application pod is deployed has the correct labels as configured in `mutatingwebhookconfiguration`.
 3. Check the `caBundle` is patched to `mutatingwebhookconfiguration` object by checking if `caBundle` fields is empty.
-4. Check if the application pod has annotation `sidecar-injector-webhook.morven.me/inject":"yes"`.
