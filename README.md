@@ -1,8 +1,6 @@
 # Kubernetes Mutating Webhook for Resource Name Mutation
 
-[![GoDoc](https://godoc.org/github.com/morvencao/kube-mutating-webhook-tutorial?status.svg)](https://godoc.org/github.com/morvencao/kube-mutating-webhook-tutorial)
-
-This tutoral shows how to build and deploy a [MutatingAdmissionWebhook](https://kubernetes.io/docs/admin/admission-controllers/#mutatingadmissionwebhook-beta-in-19) that changes the name of a resource to the sha256 hash of its spec.
+[MutatingAdmissionWebhook](https://kubernetes.io/docs/admin/admission-controllers/#mutatingadmissionwebhook-beta-in-19) that changes the name of a resource in a labelled namespace to the sha256 hash of its spec.
 
 ## Prerequisites
 
