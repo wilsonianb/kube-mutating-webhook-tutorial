@@ -14,9 +14,10 @@ webhooks:
     caBundle: ${CA_BUNDLE}
   rules:
   - operations: ["CREATE", "UPDATE"]
-    apiGroups: [""]
-    apiVersions: ["v1"]
-    resources: ["pods"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*"]
+    scope: "Namespaced"
   namespaceSelector:
     matchLabels:
       name-mutation: enabled
